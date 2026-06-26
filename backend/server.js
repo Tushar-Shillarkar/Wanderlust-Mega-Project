@@ -12,6 +12,7 @@ const app = express();
 const port = PORT || 5000;
 
 // 1. Explicit CORS configuration to handle Preflight (OPTIONS)
+// This allows your Frontend (port 31000) to communicate with Backend (port 31100)
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -30,6 +31,7 @@ connectDB();
 connectToRedis();
 
 // 4. API routes
+// Note: Ensure your Frontend calls 'http://3.110.114.119:31100/api/posts'
 app.use('/api/posts', postsRouter);
 app.use('/api/auth', authRouter);
 
