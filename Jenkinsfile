@@ -4,11 +4,14 @@ pipeline {
     
     environment{
         SONAR_HOME = tool "Sonar"
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_DEFAULT_REGION    = 'ap-south-1'
     }
     
     parameters {
-        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
-        string(name: 'BACKEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
+        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: 'latest', description: 'Setting docker image for latest push')
+        string(name: 'BACKEND_DOCKER_TAG', defaultValue: 'latest', description: 'Setting docker image for latest push')
     }
     
     stages {
@@ -45,13 +48,14 @@ pipeline {
             }
         }
 
-        stage("OWASP: Dependency check"){
-            steps{
-                script{
-                    owasp_dependency()
-                }
-            }
-        }
+        // Commented out to prevent the NVD API 429 rate limit errors from crashing the pipeline
+        // stage("OWASP: Dependency check"){
+        //     steps{
+        //         script{
+        //             owasp_dependency()
+        //         }
+        //     }
+        // }
         
         stage("SonarQube: Code Analysis"){
             steps{
@@ -116,13 +120,16 @@ pipeline {
             }
         }
     }
-    post{
-        success{
-            archiveArtifacts artifacts: '*.xml', followSymlinks: false
-            build job: "Wanderlust-CD", parameters: [
-                string(name: 'FRONTEND_DOCKER_TAG', value: "${params.FRONTEND_DOCKER_TAG}"),
-                string(name: 'BACKEND_DOCKER_TAG', value: "${params.BACKEND_DOCKER_TAG}")
-            ]
-        }
+   post {
+    always {
+        cleanWs()
     }
+    success {
+        archiveArtifacts artifacts: '*.xml', followSymlinks: false, allowEmptyArchive: true
+        build job: "Wanderlust-CD", parameters: [
+            string(name: 'FRONTEND_DOCKER_TAG', value: "${params.FRONTEND_DOCKER_TAG}"),
+            string(name: 'BACKEND_DOCKER_TAG', value: "${params.BACKEND_DOCKER_TAG}")
+        ]
+    }
+}
 }
